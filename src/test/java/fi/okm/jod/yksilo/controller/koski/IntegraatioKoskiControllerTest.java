@@ -36,8 +36,10 @@ import fi.okm.jod.yksilo.service.koski.KoskiOAuth2Service;
 import fi.okm.jod.yksilo.service.koski.KoskiService;
 import fi.okm.jod.yksilo.service.koski.PermissionRequiredException;
 import fi.okm.jod.yksilo.service.koski.ResourceServerException;
+import fi.okm.jod.yksilo.service.koski.WrongPersonException;
 import fi.okm.jod.yksilo.testutil.TestUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
@@ -258,5 +260,37 @@ class IntegraatioKoskiControllerTest {
     verify(koskiOAuth2Service).fetchDataFromResourceServer(oAuth2AuthorizedClient);
     verify(koskiService, never()).getKoulutusData(any(), any());
     verifyNoMoreInteractions(koskiOAuth2Service, koskiService);
+  }
+
+  @WithMockUser
+  @Test
+  void shouldReturnWrongPersonError_whenPersonalIdDoesNotMatch() throws Exception {
+    var jodUser = mockJodUser();
+    authenticateUser(jodUser);
+
+    var oAuth2AuthorizedClient = prepareOAuth2Client();
+    when(koskiOAuth2Service.getAuthorizedClient(
+            any(Authentication.class), any(HttpServletRequest.class)))
+        .thenReturn(oAuth2AuthorizedClient);
+    when(koskiOAuth2Service.fetchDataFromResourceServer(oAuth2AuthorizedClient))
+        .thenThrow(new WrongPersonException(UUID.randomUUID()));
+
+    var expectedResponseJson =
+        """
+        {"errorCode":"WRONG_PERSON","errorDetails":["Wrong person."]}
+        """;
+    performGetEducationsDataFromKoski(
+        oAuth2AuthorizedClient, status().isForbidden(), expectedResponseJson);
+
+    verify(koskiOAuth2Service)
+        .getAuthorizedClient(any(Authentication.class), any(HttpServletRequest.class));
+    verify(koskiOAuth2Service).fetchDataFromResourceServer(oAuth2AuthorizedClient);
+    verify(koskiOAuth2Service)
+        .unauthorize(
+            any(Authentication.class),
+            any(HttpServletRequest.class),
+            any(HttpServletResponse.class));
+    verifyNoMoreInteractions(koskiOAuth2Service);
+    verifyNoInteractions(koskiService);
   }
 }

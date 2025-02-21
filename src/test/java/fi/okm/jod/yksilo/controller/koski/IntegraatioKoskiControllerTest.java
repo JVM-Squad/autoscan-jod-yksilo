@@ -34,6 +34,7 @@ import fi.okm.jod.yksilo.dto.profiili.KoulutusDto;
 import fi.okm.jod.yksilo.errorhandler.ErrorInfoFactory;
 import fi.okm.jod.yksilo.service.koski.KoskiOAuth2Service;
 import fi.okm.jod.yksilo.service.koski.KoskiService;
+import fi.okm.jod.yksilo.service.koski.NoDataException;
 import fi.okm.jod.yksilo.service.koski.PermissionRequiredException;
 import fi.okm.jod.yksilo.service.koski.ResourceServerException;
 import fi.okm.jod.yksilo.service.koski.WrongPersonException;
@@ -290,6 +291,35 @@ class IntegraatioKoskiControllerTest {
             any(Authentication.class),
             any(HttpServletRequest.class),
             any(HttpServletResponse.class));
+    verifyNoMoreInteractions(koskiOAuth2Service);
+    verifyNoInteractions(koskiService);
+  }
+
+  @WithMockUser
+  @Test
+  void shouldReturnNoDataError_whenUserHaveNoDataInKoski() throws Exception {
+    var jodUser = mockJodUser();
+    authenticateUser(jodUser);
+
+    var oAuth2AuthorizedClient = prepareOAuth2Client();
+    when(koskiOAuth2Service.getAuthorizedClient(
+            any(Authentication.class), any(HttpServletRequest.class)))
+        .thenReturn(oAuth2AuthorizedClient);
+    when(koskiOAuth2Service.fetchDataFromResourceServer(oAuth2AuthorizedClient))
+        .thenThrow(
+            new NoDataException(
+                "omadataoauth2-error-94996a6c-a856-4dfd-8aee-da7edd578fe1: Oppijaa 1.2.246.562.24.51212001781 ei löydy tai käyttäjällä ei ole oikeuksia tietojen katseluun."));
+
+    var expectedResponseJson =
+        """
+        {"errorCode":"DATA_NOT_FOUND","errorDetails":["The user either has no data or lacks access to retrieve it."]}
+        """;
+    performGetEducationsDataFromKoski(
+        oAuth2AuthorizedClient, status().isForbidden(), expectedResponseJson);
+
+    verify(koskiOAuth2Service)
+        .getAuthorizedClient(any(Authentication.class), any(HttpServletRequest.class));
+    verify(koskiOAuth2Service).fetchDataFromResourceServer(oAuth2AuthorizedClient);
     verifyNoMoreInteractions(koskiOAuth2Service);
     verifyNoInteractions(koskiService);
   }

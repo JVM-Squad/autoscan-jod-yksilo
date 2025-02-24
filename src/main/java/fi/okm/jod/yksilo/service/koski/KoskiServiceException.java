@@ -9,9 +9,7 @@
 
 package fi.okm.jod.yksilo.service.koski;
 
-import fi.okm.jod.yksilo.service.ServiceException;
-
-public class KoskiServiceException extends ServiceException {
+public class KoskiServiceException extends RuntimeException {
 
   public KoskiServiceException(String message) {
     super(message);

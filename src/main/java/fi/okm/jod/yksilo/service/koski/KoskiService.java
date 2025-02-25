@@ -10,12 +10,10 @@
 package fi.okm.jod.yksilo.service.koski;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import fi.okm.jod.yksilo.domain.Kieli;
 import fi.okm.jod.yksilo.domain.LocalizedString;
 import fi.okm.jod.yksilo.dto.profiili.KoulutusDto;
 import java.net.URI;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -25,47 +23,17 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
 
 @Service
 @Slf4j
 public class KoskiService {
-  @Value("${jod.integraatio.koski.hosts:}.split(',')")
-  private List<String> allowedHosts;
 
-  private final RestClient restClient;
-  private final ObjectMapper objectMapper;
-
-  public KoskiService(
-      RestClient.Builder restClientBuilder,
-      MappingJackson2HttpMessageConverter messageConverter,
-      ObjectMapper objectMapper) {
+  public KoskiService() {
     log.info("Creating KoskiService");
-    this.objectMapper = objectMapper;
-
-    var requestFactory = new SimpleClientHttpRequestFactory();
-    requestFactory.setConnectTimeout(Duration.ofSeconds(10));
-    requestFactory.setReadTimeout(Duration.ofSeconds(10));
-
-    this.restClient =
-        restClientBuilder
-            .messageConverters(
-                converters -> {
-                  converters.clear();
-                  converters.add(messageConverter);
-                })
-            .requestFactory(requestFactory)
-            .defaultHeader(
-                HttpHeaders.USER_AGENT, "fi.okm.jod (https://okm.fi/hanke?tunnus=OKM069:00/2021)")
-            .build();
   }
 
-  private JsonNode readJsonProperty(JsonNode jsonNode, String... paths) {
+  private static JsonNode readJsonProperty(JsonNode jsonNode, String... paths) {
     for (String path : paths) {
       if (jsonNode == null) {
         return null;

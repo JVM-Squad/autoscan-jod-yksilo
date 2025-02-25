@@ -92,9 +92,6 @@ class IntegraatioKoskiControllerTest {
   @WithMockUser
   @Test
   void shouldReturnEducationDataWhenAuthorized() throws Exception {
-    var jodUser = mockJodUser();
-    authenticateUser(jodUser);
-
     var mockAuthorizedClient = prepareOAuth2Client();
     var mockDataInJson =
         objectMapper.readTree(
@@ -129,10 +126,10 @@ class IntegraatioKoskiControllerTest {
     verify(koskiService).getKoulutusData(mockDataInJson, null);
   }
 
-  @WithMockUser
   @Test
   void shouldReturnUnauthorized_whenNotAuthorizedWithKoskiOAuth() throws Exception {
-    var jodUser = mockJodUser();
+    var jodUser = mock(JodUser.class);
+    when(jodUser.getId()).thenReturn(UUID.fromString("6d910473-ced6-46a6-93a9-d5090008ae1c"));
     authenticateUser(jodUser);
 
     var oAuth2AuthorizedClient = prepareOAuth2Client();
@@ -153,12 +150,6 @@ class IntegraatioKoskiControllerTest {
     verifyNoInteractions(koskiService);
   }
 
-  private static JodUser mockJodUser() {
-    var jodUser = mock(JodUser.class);
-    when(jodUser.getId()).thenReturn(UUID.fromString("6d910473-ced6-46a6-93a9-d5090008ae1c"));
-    return jodUser;
-  }
-
   private OAuth2AuthorizedClient prepareOAuth2Client() {
     var clientRegistration = mock(ClientRegistration.class);
     when(clientRegistration.getRegistrationId()).thenReturn("koski");
@@ -175,9 +166,6 @@ class IntegraatioKoskiControllerTest {
   @WithMockUser
   @Test
   void shouldReturnUnauthorized_whenTokenExpired() throws Exception {
-    var jodUser = mockJodUser();
-    authenticateUser(jodUser);
-
     var oAuth2AuthorizedClient = prepareOAuth2Client();
     when(koskiOAuth2Service.getAuthorizedClient(
             any(Authentication.class), any(HttpServletRequest.class)))
@@ -212,9 +200,6 @@ class IntegraatioKoskiControllerTest {
   @WithMockUser
   @Test
   void shouldReturnInternalServerError_whenFetchingDataFails() throws Exception {
-    var jodUser = mockJodUser();
-    authenticateUser(jodUser);
-
     var oAuth2AuthorizedClient = prepareOAuth2Client();
     when(koskiOAuth2Service.getAuthorizedClient(
             any(Authentication.class), any(HttpServletRequest.class)))
@@ -238,9 +223,6 @@ class IntegraatioKoskiControllerTest {
   @WithMockUser
   @Test
   void shouldReturnWrongPersonError_whenPersonalIdDoesNotMatch() throws Exception {
-    var jodUser = mockJodUser();
-    authenticateUser(jodUser);
-
     var oAuth2AuthorizedClient = prepareOAuth2Client();
     when(koskiOAuth2Service.getAuthorizedClient(
             any(Authentication.class), any(HttpServletRequest.class)))
@@ -265,9 +247,6 @@ class IntegraatioKoskiControllerTest {
   @WithMockUser
   @Test
   void shouldReturnNoDataError_whenUserHaveNoDataInKoski() throws Exception {
-    var jodUser = mockJodUser();
-    authenticateUser(jodUser);
-
     var oAuth2AuthorizedClient = prepareOAuth2Client();
     when(koskiOAuth2Service.fetchDataFromResourceServer(oAuth2AuthorizedClient))
         .thenThrow(

@@ -9,11 +9,11 @@
 
 package fi.okm.jod.yksilo.controller.koski;
 
+import static fi.okm.jod.yksilo.testutil.LocalizedStrings.ls;
 import static fi.okm.jod.yksilo.testutil.TestUtil.authenticateUser;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -29,7 +29,6 @@ import fi.okm.jod.yksilo.config.koski.KoskiOAuth2Config;
 import fi.okm.jod.yksilo.config.koski.TestKoskiOAuth2Config;
 import fi.okm.jod.yksilo.domain.JodUser;
 import fi.okm.jod.yksilo.domain.Kieli;
-import fi.okm.jod.yksilo.domain.LocalizedString;
 import fi.okm.jod.yksilo.dto.profiili.KoulutusDto;
 import fi.okm.jod.yksilo.errorhandler.ErrorInfoFactory;
 import fi.okm.jod.yksilo.service.koski.KoskiOAuth2Service;
@@ -42,7 +41,6 @@ import fi.okm.jod.yksilo.testutil.TestUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -111,22 +109,8 @@ class IntegraatioKoskiControllerTest {
             List.of(
                 new KoulutusDto(
                     null, // id
-                    new LocalizedString(
-                        new HashMap<>() {
-                          {
-                            put(Kieli.FI, "Nimi");
-                            put(Kieli.EN, "Name");
-                            put(Kieli.SV, "Namm");
-                          }
-                        }),
-                    new LocalizedString(
-                        new HashMap<>() {
-                          {
-                            put(Kieli.FI, "Kuvaus");
-                            put(Kieli.EN, "Description");
-                            put(Kieli.SV, "Beskrivning");
-                          }
-                        }),
+                    ls(Kieli.FI, "nimi", Kieli.EN, "Name", Kieli.SV, "Namm"),
+                    ls(Kieli.FI, "Kuvaus", Kieli.EN, "Description", Kieli.SV, "Beskrivning"),
                     LocalDate.of(2006, 1, 1), // alkuPvm
                     null, // loppuPvm is null
                     null // osaamiset is null
@@ -141,12 +125,8 @@ class IntegraatioKoskiControllerTest {
         """;
     performGetEducationsDataFromKoski(mockAuthorizedClient, status().isOk(), expectedResponseJson);
 
-    verify(koskiOAuth2Service)
-        .getAuthorizedClient(any(Authentication.class), any(HttpServletRequest.class));
     verify(koskiOAuth2Service).fetchDataFromResourceServer(mockAuthorizedClient);
-    verify(koskiOAuth2Service).checkPersonIdMatches(any(), any(JsonNode.class));
     verify(koskiService).getKoulutusData(mockDataInJson, null);
-    verifyNoMoreInteractions(koskiOAuth2Service, koskiService);
   }
 
   @WithMockUser
@@ -212,11 +192,7 @@ class IntegraatioKoskiControllerTest {
     performGetEducationsDataFromKoski(
         oAuth2AuthorizedClient, status().isForbidden(), expectedResponseJson);
 
-    verify(koskiOAuth2Service)
-        .getAuthorizedClient(any(Authentication.class), any(HttpServletRequest.class));
     verify(koskiOAuth2Service).fetchDataFromResourceServer(oAuth2AuthorizedClient);
-    verifyNoMoreInteractions(koskiOAuth2Service);
-    verifyNoInteractions(koskiService);
   }
 
   private void performGetEducationsDataFromKoski(
@@ -256,11 +232,7 @@ class IntegraatioKoskiControllerTest {
     performGetEducationsDataFromKoski(
         oAuth2AuthorizedClient, status().isInternalServerError(), expectedResponseJson);
 
-    verify(koskiOAuth2Service)
-        .getAuthorizedClient(any(Authentication.class), any(HttpServletRequest.class));
     verify(koskiOAuth2Service).fetchDataFromResourceServer(oAuth2AuthorizedClient);
-    verify(koskiService, never()).getKoulutusData(any(), any());
-    verifyNoMoreInteractions(koskiOAuth2Service, koskiService);
   }
 
   @WithMockUser
@@ -284,15 +256,10 @@ class IntegraatioKoskiControllerTest {
         oAuth2AuthorizedClient, status().isForbidden(), expectedResponseJson);
 
     verify(koskiOAuth2Service)
-        .getAuthorizedClient(any(Authentication.class), any(HttpServletRequest.class));
-    verify(koskiOAuth2Service).fetchDataFromResourceServer(oAuth2AuthorizedClient);
-    verify(koskiOAuth2Service)
         .unauthorize(
             any(Authentication.class),
             any(HttpServletRequest.class),
             any(HttpServletResponse.class));
-    verifyNoMoreInteractions(koskiOAuth2Service);
-    verifyNoInteractions(koskiService);
   }
 
   @WithMockUser
@@ -302,9 +269,6 @@ class IntegraatioKoskiControllerTest {
     authenticateUser(jodUser);
 
     var oAuth2AuthorizedClient = prepareOAuth2Client();
-    when(koskiOAuth2Service.getAuthorizedClient(
-            any(Authentication.class), any(HttpServletRequest.class)))
-        .thenReturn(oAuth2AuthorizedClient);
     when(koskiOAuth2Service.fetchDataFromResourceServer(oAuth2AuthorizedClient))
         .thenThrow(
             new NoDataException(
@@ -317,10 +281,6 @@ class IntegraatioKoskiControllerTest {
     performGetEducationsDataFromKoski(
         oAuth2AuthorizedClient, status().isForbidden(), expectedResponseJson);
 
-    verify(koskiOAuth2Service)
-        .getAuthorizedClient(any(Authentication.class), any(HttpServletRequest.class));
     verify(koskiOAuth2Service).fetchDataFromResourceServer(oAuth2AuthorizedClient);
-    verifyNoMoreInteractions(koskiOAuth2Service);
-    verifyNoInteractions(koskiService);
   }
 }

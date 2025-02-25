@@ -73,15 +73,8 @@ public class KoskiOAuth2Service {
     if (jsonData == null) {
       return null;
     }
-    var henkilo = jsonData.get("henkilö");
-    if (henkilo == null) {
-      return null;
-    }
-    var hetu = henkilo.get("hetu");
-    if (hetu == null) {
-      return null;
-    }
-    return hetu.asText();
+    var hetu = jsonData.path("henkilö").path("hetu");
+    return hetu.isMissingNode() ? null : hetu.asText();
   }
 
   public void unauthorize(

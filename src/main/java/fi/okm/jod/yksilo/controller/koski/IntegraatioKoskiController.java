@@ -52,10 +52,10 @@ public class IntegraatioKoskiController {
   @Operation(summary = "Get user's education's histories from Koski's opintopolku.")
   ResponseEntity<List<KoulutusDto>> getEducationsDataFromKoski(
       @AuthenticationPrincipal JodUser jodUser,
-      Authentication oauth2User,
+      Authentication authentication,
       HttpServletRequest request,
       HttpServletResponse response) {
-    var authorizedClient = koskiOAuth2Service.getAuthorizedClient(oauth2User, request);
+    var authorizedClient = koskiOAuth2Service.getAuthorizedClient(authentication, request);
     if (authorizedClient == null) {
       throw new PermissionRequiredException(jodUser.getId());
     }
@@ -76,7 +76,7 @@ public class IntegraatioKoskiController {
       return ResponseEntity.ok(educationHistories);
 
     } catch (WrongPersonException e) {
-      koskiOAuth2Service.unauthorize(oauth2User, request, response);
+      koskiOAuth2Service.unauthorize(authentication, request, response);
       throw e;
     }
   }

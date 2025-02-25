@@ -49,8 +49,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -120,7 +120,7 @@ class IntegraatioKoskiControllerTest {
         """
         [{"id":null,"nimi":{},"kuvaus":{},"alkuPvm":"2006-01-01","loppuPvm":null,"osaamiset":null}]
         """;
-    performGetEducationsDataFromKoski(mockAuthorizedClient, status().isOk(), expectedResponseJson);
+    performGetEducationsDataFromKoski(status().isOk(), expectedResponseJson);
 
     verify(koskiOAuth2Service).fetchDataFromResourceServer(mockAuthorizedClient);
     verify(koskiService).getKoulutusData(mockDataInJson, null);
@@ -132,7 +132,6 @@ class IntegraatioKoskiControllerTest {
     when(jodUser.getId()).thenReturn(UUID.fromString("6d910473-ced6-46a6-93a9-d5090008ae1c"));
     authenticateUser(jodUser);
 
-    var oAuth2AuthorizedClient = prepareOAuth2Client();
     when(koskiOAuth2Service.getAuthorizedClient(
             any(Authentication.class), any(HttpServletRequest.class)))
         .thenReturn(null);
@@ -141,8 +140,7 @@ class IntegraatioKoskiControllerTest {
         """
         {"errorCode":"PERMISSION_REQUIRED","errorDetails":["Permission was not given or it is missing."]}
         """;
-    performGetEducationsDataFromKoski(
-        oAuth2AuthorizedClient, status().isForbidden(), expectedResponseJson);
+    performGetEducationsDataFromKoski(status().isForbidden(), expectedResponseJson);
 
     verify(koskiOAuth2Service)
         .getAuthorizedClient(any(Authentication.class), any(HttpServletRequest.class));
@@ -177,21 +175,16 @@ class IntegraatioKoskiControllerTest {
         """
         {"errorCode":"PERMISSION_REQUIRED","errorDetails":["Token expired."]}
         """;
-    performGetEducationsDataFromKoski(
-        oAuth2AuthorizedClient, status().isForbidden(), expectedResponseJson);
+    performGetEducationsDataFromKoski(status().isForbidden(), expectedResponseJson);
 
     verify(koskiOAuth2Service).fetchDataFromResourceServer(oAuth2AuthorizedClient);
   }
 
   private void performGetEducationsDataFromKoski(
-      OAuth2AuthorizedClient oAuth2AuthorizedClient,
-      ResultMatcher expectedResult,
-      String expectedResponseJson)
-      throws Exception {
+      ResultMatcher expectedResult, String expectedResponseJson) throws Exception {
+    var authentication = SecurityContextHolder.getContext().getAuthentication();
     mockMvc
-        .perform(
-            get(API_KOSKI_KOULUTUKSET_ENDPOINT)
-                .principal(new TestingAuthenticationToken(oAuth2AuthorizedClient, null)))
+        .perform(get(API_KOSKI_KOULUTUKSET_ENDPOINT).principal(authentication))
         .andDo(print())
         .andExpect(expectedResult)
         .andExpect(content().json(expectedResponseJson));
@@ -214,8 +207,7 @@ class IntegraatioKoskiControllerTest {
         """
         {"errorCode":"SERVICE_ERROR","errorDetails":["Fail to get data from Koski resource server."]}
         """;
-    performGetEducationsDataFromKoski(
-        oAuth2AuthorizedClient, status().isInternalServerError(), expectedResponseJson);
+    performGetEducationsDataFromKoski(status().isInternalServerError(), expectedResponseJson);
 
     verify(koskiOAuth2Service).fetchDataFromResourceServer(oAuth2AuthorizedClient);
   }
@@ -234,8 +226,7 @@ class IntegraatioKoskiControllerTest {
         """
         {"errorCode":"WRONG_PERSON","errorDetails":["Wrong person."]}
         """;
-    performGetEducationsDataFromKoski(
-        oAuth2AuthorizedClient, status().isForbidden(), expectedResponseJson);
+    performGetEducationsDataFromKoski(status().isForbidden(), expectedResponseJson);
 
     verify(koskiOAuth2Service)
         .unauthorize(
@@ -257,8 +248,7 @@ class IntegraatioKoskiControllerTest {
         """
         {"errorCode":"DATA_NOT_FOUND","errorDetails":["The user either has no data or lacks access to retrieve it."]}
         """;
-    performGetEducationsDataFromKoski(
-        oAuth2AuthorizedClient, status().isForbidden(), expectedResponseJson);
+    performGetEducationsDataFromKoski(status().isForbidden(), expectedResponseJson);
 
     verify(koskiOAuth2Service).fetchDataFromResourceServer(oAuth2AuthorizedClient);
   }

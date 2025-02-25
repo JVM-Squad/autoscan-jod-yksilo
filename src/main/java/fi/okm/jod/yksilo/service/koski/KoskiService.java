@@ -75,19 +75,6 @@ public class KoskiService {
     return jsonNode.isMissingNode() ? null : jsonNode;
   }
 
-  public List<KoulutusDto> getKoskiData(URI linkki) {
-    if (!allowedHosts.contains(linkki.getHost())) {
-      try {
-        var koskiResponse = restClient.get().uri(linkki).retrieve().body(JsonNode.class);
-        return getKoulutusData(koskiResponse, linkki);
-
-      } catch (Exception e) {
-        log.error("Failed to parse JSON response", e);
-      }
-    }
-    throw new IllegalArgumentException("invalid opintopolku URL");
-  }
-
   public List<KoulutusDto> getKoulutusData(JsonNode koskiResponse, URI linkki) {
     JsonNode opinnot = readJsonProperty(koskiResponse, "opiskeluoikeudet");
     if (opinnot == null || !opinnot.isArray()) {
